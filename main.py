@@ -7,7 +7,11 @@ from models.Camera import Camera
 from models.Transporte import Transporte
 from models.Vagao import Vagao
 
+
 def run() -> None:
+
+    # TODO: apagar depois de pronto
+    mensagemDefault = ""
 
     with open("data.json", "r") as read_file:
         transporte = Transporte(json.loads(read_file.read()))
@@ -31,6 +35,7 @@ def run() -> None:
 
     while True:
 
+        transporteQtn = 0
         for vagao in transporte.listaVagoes:
             camerasQtn = list()
             for camera in vagao.listaCameras:
@@ -59,7 +64,18 @@ def run() -> None:
             # Calcula mediana
             if len(camerasQtn) > 0:
                 vagao.quantidadePessoas = statistics.median(camerasQtn)
-                print(f"Mediana: {camera.quantidadePessoas}")
+                transporteQtn = transporteQtn + vagao.quantidadePessoas
+
+        if transporteQtn > transporte.limite:
+            # TODO: apagar depois de pronto
+            if mensagemDefault != "Ultrapassoui limite":
+                mensagemDefault = "Ultrapassoui limite"
+                print(mensagemDefault)
+        else:
+            # TODO: apagar depois de pronto
+            if mensagemDefault != "Dentro do limite":
+                mensagemDefault = "Dentro do limite"
+                print(mensagemDefault)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
