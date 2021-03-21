@@ -1,0 +1,14 @@
+{
+  "listaVagoes":[
+    {
+      "listaCameras":[
+        {
+          "url":"http://192.168.0.105:8080/video",
+          "quantidadePessoas":0,
+          "captura":0
+        }
+      ],
+      "quantidadePessoas":0
+    }
+  ],"urlArduino":"xxx"
+}

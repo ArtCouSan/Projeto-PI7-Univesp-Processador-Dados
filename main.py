@@ -1,71 +1,77 @@
+import statistics
 import cv2
-import numpy
+import numpy as np
+import json
 
+from models.Camera import Camera
+from models.Transporte import Transporte
+from models.Vagao import Vagao
 
-def redim(img, largura):
-	alt = int(img.shape[0]/img.shape[1]*largura)
-	img = cv2.resize(img, (largura, alt), interpolation =cv2.INTER_AREA)
-	return img
+def run() -> None:
 
-cameraFrontalURL: str = 'http://192.168.0.104:8080/video'
-# cameraLateralDireitaURL: str = 'http://192.168.0.104:8081/video'
-# cameraLateralEsquerdaURL: str = 'http://192.168.0.104:8082/video'
-# cameraTraseiraURL: str = 'http://192.168.0.104:8083/video'
-arduinoURL: str = ""
+    with open("data.json", "r") as read_file:
+        transporte = Transporte(json.loads(read_file.read()))
 
-capFrontal = cv2.VideoCapture()
-capFrontal.open(cameraFrontalURL)
+    # Abre as cameras
+    vagoes = list()
+    for vagao in transporte.listaVagoes:
+        vagao = Vagao(vagao)
+        cameras = list()
+        for camera in vagao.listaCameras:
+            camera = Camera(camera)
+            camera.captura = cv2.VideoCapture()
+            camera.captura.open(camera.url)
+            cameras.append(camera)
+        vagao.listaCameras = cameras
+        vagoes.append(vagao)
+    transporte.listaVagoes = vagoes
 
-# capLateralDireita = cv2.VideoCapture()
-# capLateralDireita.open(cameraLateralDireitaURL)
-#
-# capLateralEsquerda = cv2.VideoCapture()
-# capLateralEsquerda.open(cameraLateralEsquerdaURL)
-#
-# capTraseira = cv2.VideoCapture()
-# capTraseira.open(cameraTraseiraURL)
+    df = cv2.HOGDescriptor()
+    df.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
-#Criação do detector de faces
-df = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
-quantidadePessoasCameraFrontal = 0
+    while True:
 
-while True:
+        for vagao in transporte.listaVagoes:
+            camerasQtn = list()
+            for camera in vagao.listaCameras:
+                (sucesso, frame) = camera.captura.read()
 
-	(sucessoFrontal, frameFrontal) = capFrontal.read()
-	# (sucessoLateralDireita, frameLateralDireita) = capLateralDireita.read()
-	# (sucessoLateralEsquerda, frameLateralEsquerda) = capLateralEsquerda.read()
-	# (sucessoTraseira, frameTraseira) = capTraseira.read()
+                # Verifica se conseguiu fazer captura
+                if sucesso:
+                    frame = cv2.resize(frame, (640, 480))
+                    frameCinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-	if sucessoFrontal:
-		frameFrontal = redim(frameFrontal, 320)
-		frameFrontalCinza = cv2.cvtColor(frameFrontal, cv2.COLOR_BGR2GRAY)
-		faces = df.detectMultiScale(frameFrontalCinza, scaleFactor=1.1, minNeighbors=8, minSize=(25, 25))
-		frameFrontalTemp = frameFrontal.copy()
-		for (x, y, l, a) in faces:
-			cv2.rectangle(frameFrontalTemp, (x, y), (x + l, y + a), (0, 255, 255), 2)
-		if type(faces) is numpy.ndarray:
-			if quantidadePessoasCameraFrontal != faces.shape[0]:
-				quantidadePessoasCameraFrontal = faces.shape[0]
-				print(quantidadePessoasCameraFrontal)
-		cv2.imshow('Camera frontal', redim(frameFrontalTemp, 640))
+                    # Realiza a contagem na imagem
+                    pessoas, weigths = df.detectMultiScale(frameCinza, winStride=(4, 4), padding=(8, 8), scale=1.05)
 
-	# if sucessoLateralDireita:
-	# 	cv2.imshow("frameLateralDireita", frameLateralDireita)
-	#
-	# if sucessoLateralEsquerda:
-	# 	cv2.imshow("frameLateralEsquerda", frameLateralEsquerda)
-	#
-	# if sucessoTraseira:
-	# 	cv2.imshow("frameTraseira", frameTraseira)
+                    for (x, y, l, a) in pessoas:
+                        # display the detected boxes in the colour picture
+                        cv2.rectangle(frame, (x, y), (x + l, y + a), (0, 255, 255), 2)
 
-	key = cv2.waitKey(1)
+                    # Display the resulting frame
+                    cv2.imshow('frame', frame)
 
-	if key == 27:
-		break
+                    # Verifica se conseguiu capturar algo
+                    if type(pessoas) is np.ndarray:
+                        camera.quantidadePessoas = pessoas.shape[0]
+                        camerasQtn.append(camera.quantidadePessoas)
 
-capFrontal.release()
-# capLateralDireita.release()
-# capLateralEsquerda.release()
-# capTraseira.release()
+            # Calcula mediana
+            if len(camerasQtn) > 0:
+                vagao.quantidadePessoas = statistics.median(camerasQtn)
+                print(f"Mediana: {camera.quantidadePessoas}")
 
-cv2.destroyAllWindows()
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Release
+    for vagao in transporte.listaVagoes:
+        for camera in vagao.listaCameras:
+            camera.captura.release()
+
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
+
+if __name__ == '__main__':
+    run()
+
