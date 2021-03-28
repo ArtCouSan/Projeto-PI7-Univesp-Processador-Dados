@@ -26,6 +26,7 @@ wheels/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
+yolo/yolov.weights
 .installed.cfg
 *.egg
 MANIFEST

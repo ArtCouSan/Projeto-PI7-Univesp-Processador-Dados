@@ -9,8 +9,23 @@ from models.Vagao import Vagao
 
 def run() -> None:
 
+    # TODO: apagar depois de pronto
+    mensagemDefault = ""
+
+    # Configuracao do yolo
+    net = cv2.dnn.readNet("yolo/yolov.weights", "yolo/yolov.cfg")
+
     with open("data.json", "r") as read_file:
         transporte = Transporte(json.loads(read_file.read()))
+
+    # Carrega rotulos do modelo
+    classes = []
+    with open("yolo/coco.names", "r") as coco_file:
+        classes = [line.strip() for line in coco_file.readlines()]
+
+    # Define possiveis saidas do modelo
+    layer_names = net.getLayerNames()
+    output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
     # Abre as cameras
     vagoes = list()
@@ -26,40 +41,101 @@ def run() -> None:
         vagoes.append(vagao)
     transporte.listaVagoes = vagoes
 
-    df = cv2.HOGDescriptor()
-    df.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-
     while True:
 
+        transporteQtn = 0
         for vagao in transporte.listaVagoes:
             camerasQtn = list()
             for camera in vagao.listaCameras:
-                (sucesso, frame) = camera.captura.read()
+
+                # Realiza/Verifica a leitura
+                (sucesso, img) = camera.captura.read()
 
                 # Verifica se conseguiu fazer captura
                 if sucesso:
-                    frame = cv2.resize(frame, (640, 480))
-                    frameCinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-                    # Realiza a contagem na imagem
-                    pessoas, weigths = df.detectMultiScale(frameCinza, winStride=(4, 4), padding=(8, 8), scale=1.05)
+                    # Infos do frame
+                    img = cv2.resize(img, None, fx=0.4, fy=0.4)
+                    height, width, channels = img.shape
 
-                    for (x, y, l, a) in pessoas:
-                        # display the detected boxes in the colour picture
-                        cv2.rectangle(frame, (x, y), (x + l, y + a), (0, 255, 255), 2)
+                    # Pre processamento do video
+                    blob = cv2.dnn.blobFromImage(img, 1 / 255.0, (416, 416), swapRB=True, crop=False)
 
-                    # Display the resulting frame
-                    cv2.imshow('frame', frame)
+                    # Detecta as saidas do video pelas configs de saida do YOLO
+                    net.setInput(blob)
+                    outs = net.forward(output_layers)
 
-                    # Verifica se conseguiu capturar algo
-                    if type(pessoas) is np.ndarray:
-                        camera.quantidadePessoas = pessoas.shape[0]
-                        camerasQtn.append(camera.quantidadePessoas)
+                    # Declara variaveis
+                    class_ids = []
+                    confidences = []
+                    boxes = []
+                    for out in outs:
+                        for detection in out:
+                            scores = detection[5:]
+                            class_id = np.argmax(scores)
+                            confidence = scores[class_id]
+
+                            if confidence > 0.5:
+
+                                # Objeto detectado
+                                center_x = int(detection[0] * width)
+                                center_y = int(detection[1] * height)
+                                w = int(detection[2] * width)
+                                h = int(detection[3] * height)
+
+                                # Marca objeto
+                                x = int(center_x - w / 2)
+                                y = int(center_y - h / 2)
+
+                                # Persiste marcacoes e objetos
+                                boxes.append([x, y, w, h])
+                                confidences.append(float(confidence))
+                                class_ids.append(class_id)
+
+                    pessoas = 0
+
+                    # Non-maximum Suppresion
+                    indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+                    font = cv2.FONT_HERSHEY_PLAIN
+                    colors = np.random.uniform(0, 255, size=(len(classes), 3))
+                    for i in range(len(boxes)):
+                        if i in indexes:
+                            x, y, w, h = boxes[i]
+
+                            #Verifica se existe o rotulo
+                            label = str(classes[class_ids[i]])
+
+                            # Caso seja uma pessoa detectada
+                            if label.__eq__("person"):
+                                color = colors[class_ids[i]]
+                                cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
+                                cv2.putText(img, label, (x, y + 30), font, 2, color, 3)
+                                # Adiciona pessoa na temp
+                                pessoas = pessoas + 1
+
+                    # TODO: Remover no futuro, apenas para desenvolvimento
+                    cv2.imshow("Image", cv2.resize(img, (800, 600)))
+
+                    # Adiciona no objeto
+                    camera.quantidadePessoas = pessoas
+                    camerasQtn.append(camera.quantidadePessoas)
 
             # Calcula mediana
             if len(camerasQtn) > 0:
                 vagao.quantidadePessoas = statistics.median(camerasQtn)
-                print(f"Mediana: {camera.quantidadePessoas}")
+                transporteQtn = transporteQtn + vagao.quantidadePessoas
+
+        if transporteQtn > transporte.limite:
+            # TODO: apagar depois de pronto
+            if mensagemDefault != "Ultrapassou o limite":
+                mensagemDefault = "Ultrapassou o limite"
+                print(mensagemDefault)
+
+        else:
+            # TODO: apagar depois de pronto
+            if mensagemDefault != "Dentro do limite":
+                mensagemDefault = "Dentro do limite"
+                print(mensagemDefault)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
