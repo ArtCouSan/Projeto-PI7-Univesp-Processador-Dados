@@ -7,6 +7,7 @@ from models.Camera import Camera
 from models.Transporte import Transporte
 from models.Vagao import Vagao
 
+
 def run() -> None:
 
     # TODO: apagar depois de pronto
@@ -130,7 +131,6 @@ def run() -> None:
             if mensagemDefault != "Ultrapassou o limite":
                 mensagemDefault = "Ultrapassou o limite"
                 print(mensagemDefault)
-
         else:
             # TODO: apagar depois de pronto
             if mensagemDefault != "Dentro do limite":
