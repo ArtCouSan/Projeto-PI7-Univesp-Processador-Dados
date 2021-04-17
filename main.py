@@ -2,6 +2,7 @@ import statistics
 import cv2
 import numpy as np
 import json
+import requests
 
 from models.Camera import Camera
 from models.Transporte import Transporte
@@ -51,6 +52,7 @@ def run() -> None:
 
                 # Realiza/Verifica a leitura
                 (sucesso, img) = camera.captura.read()
+                
 
                 # Verifica se conseguiu fazer captura
                 if sucesso:
@@ -121,6 +123,7 @@ def run() -> None:
                     camera.quantidadePessoas = pessoas
                     camerasQtn.append(camera.quantidadePessoas)
 
+
             # Calcula mediana
             if len(camerasQtn) > 0:
                 vagao.quantidadePessoas = statistics.median(camerasQtn)
@@ -131,13 +134,16 @@ def run() -> None:
             if mensagemDefault != "Ultrapassou o limite":
                 mensagemDefault = "Ultrapassou o limite"
                 print(mensagemDefault)
+                requests.get(url = transporte.urlArduino + "on")
+
         else:
             # TODO: apagar depois de pronto
             if mensagemDefault != "Dentro do limite":
                 mensagemDefault = "Dentro do limite"
                 print(mensagemDefault)
+                requests.get(url = transporte.urlArduino + "off")
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(60) & 0xFF == ord('q'):
             break
 
     # Release
