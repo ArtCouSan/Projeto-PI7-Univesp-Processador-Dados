@@ -17,5 +17,7 @@
     }
   ],
   "urlArduino":"http://192.168.0.110/",
-  "limite": 0
+  "urlApi":"http://127.0.0.1:8000/onibus",
+  "limite": 0,
+  "placaVeiculo": "ACS123"
 }

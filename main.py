@@ -8,8 +8,9 @@ from models.Camera import Camera
 from models.Transporte import Transporte
 from models.Vagao import Vagao
 
-
 def run() -> None:
+
+    print("Iniciou....")
 
     # TODO: apagar depois de pronto
     mensagemDefault = ""
@@ -134,14 +135,24 @@ def run() -> None:
             if mensagemDefault != "Ultrapassou o limite":
                 mensagemDefault = "Ultrapassou o limite"
                 print(mensagemDefault)
-                requests.get(url = transporte.urlArduino + "on")
+                requests.patch(url= transporte.urlApi + '/' + transporte.placaVeiculo + '/', data={
+                   "estaLotado": True,
+                   "qtnPassageirosAtual": transporteQtn,
+                   "limite": transporte.limite
+                })
+                requests.get(url= transporte.urlArduino + "on")
 
         else:
             # TODO: apagar depois de pronto
             if mensagemDefault != "Dentro do limite":
                 mensagemDefault = "Dentro do limite"
                 print(mensagemDefault)
-                requests.get(url = transporte.urlArduino + "off")
+                requests.patch(url=transporte.urlApi + '/' + transporte.placaVeiculo + '/', data={
+                    "estaLotado": False,
+                    "qtnPassageirosAtual": transporteQtn,
+                    "limite": transporte.limite
+                })
+                requests.get(url= transporte.urlArduino + "off")
 
         if cv2.waitKey(60) & 0xFF == ord('q'):
             break
@@ -156,4 +167,5 @@ def run() -> None:
 
 if __name__ == '__main__':
     run()
+
 
