@@ -16,7 +16,7 @@ def run() -> None:
     mensagemDefault = ""
 
     # Configuracao do yolo
-    net = cv2.dnn.readNet("yolo/yolov.weights", "yolo/yolov.cfg")
+    net = cv2.dnn.readNet("yolo/yolov3.weights", "yolo/yolov.cfg")
 
     with open("data.json", "r") as read_file:
         transporte = Transporte(json.loads(read_file.read()))
@@ -135,9 +135,9 @@ def run() -> None:
             if mensagemDefault != "Ultrapassou o limite":
                 mensagemDefault = "Ultrapassou o limite"
                 print(mensagemDefault)
-                requests.patch(url= transporte.urlApi + '/' + transporte.placaVeiculo + '/', data={
-                   "estaLotado": True,
-                   "qtnPassageirosAtual": transporteQtn,
+                requests.put(url= transporte.urlApi + '/' + transporte.placaVeiculo + '/', data={
+                   "estaLotado": "true",
+                   "qtnPassageiros": transporteQtn,
                    "limite": transporte.limite
                 })
                 requests.get(url= transporte.urlArduino + "on")
@@ -147,9 +147,9 @@ def run() -> None:
             if mensagemDefault != "Dentro do limite":
                 mensagemDefault = "Dentro do limite"
                 print(mensagemDefault)
-                requests.patch(url=transporte.urlApi + '/' + transporte.placaVeiculo + '/', data={
-                    "estaLotado": False,
-                    "qtnPassageirosAtual": transporteQtn,
+                requests.put(url=transporte.urlApi + '/' + transporte.placaVeiculo + '/', data={
+                    "estaLotado": "false",
+                    "qtnPassageiros": transporteQtn,
                     "limite": transporte.limite
                 })
                 requests.get(url= transporte.urlArduino + "off")

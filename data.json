@@ -6,18 +6,13 @@
           "url":"http://192.168.0.104:8080/video",
           "quantidadePessoas":0,
           "captura":0
-        },
-        {
-          "url":"http://192.168.0.105:8081/video",
-          "quantidadePessoas":0,
-          "captura":0
         }
       ],
       "quantidadePessoas":0
     }
   ],
-  "urlArduino":"http://192.168.0.110/",
-  "urlApi":"http://127.0.0.1:8000/onibus",
+  "urlArduino":"http://192.168.0.114/",
+  "urlApi":"http://127.0.0.1:3000/onibus",
   "limite": 0,
   "placaVeiculo": "ACS123"
 }
